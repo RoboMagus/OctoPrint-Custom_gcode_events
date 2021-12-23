@@ -1,0 +1,4 @@
+include README.md
+recursive-include octoprint_custom_gcode_events/templates *
+recursive-include octoprint_custom_gcode_events/translations *
+recursive-include octoprint_custom_gcode_events/static *
