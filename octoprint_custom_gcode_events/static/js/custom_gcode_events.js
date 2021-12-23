@@ -8,11 +8,28 @@ $(function() {
     function Custom_gcode_eventsViewModel(parameters) {
         var self = this;
 
-        // assign the injected parameters, e.g.:
-        // self.loginStateViewModel = parameters[0];
-        // self.settingsViewModel = parameters[1];
+		var PLUGIN_ID = "custom_gcode_events";
 
-        // TODO: Implement your plugin's view model here.
+        self.settings = parameters[0];
+        
+        self.received_gcode_hooks = ko.observableArray();
+
+        self.onSettingsBeforeSave = function() {
+            // ko.utils.arrayForEach(self.settings.settings.plugins.LightControls.light_controls(), function (item, index) {
+            // });
+        };
+
+        
+        self.addRcvdEvent = function() {
+            self.settings.settings.plugins.custom_gcode_events.received_gcode_hooks.push({
+                gcode: ko.observable('') });
+            self.received_gcode_hooks(self.settings.settings.plugins.custom_gcode_events.received_gcode_hooks());
+        };
+
+        self.removeRcvdEvent = function(profile) {
+            self.settings.settings.plugins.custom_gcode_events.received_gcode_hooks.remove(profile);
+            self.received_gcode_hooks(self.settings.settings.plugins.custom_gcode_events.received_gcode_hooks());
+        };
     }
 
     /* view model class, parameters for constructor, container to bind to
@@ -22,8 +39,8 @@ $(function() {
     OCTOPRINT_VIEWMODELS.push({
         construct: Custom_gcode_eventsViewModel,
         // ViewModels your plugin depends on, e.g. loginStateViewModel, settingsViewModel, ...
-        dependencies: [ /* "loginStateViewModel", "settingsViewModel" */ ],
+        dependencies: [ "settingsViewModel" ],
         // Elements to bind to, e.g. #settings_plugin_custom_gcode_events, #tab_plugin_custom_gcode_events, ...
-        elements: [ /* ... */ ]
+        elements: [ "#settings_plugin_custom_gcode_events" ]
     });
 });

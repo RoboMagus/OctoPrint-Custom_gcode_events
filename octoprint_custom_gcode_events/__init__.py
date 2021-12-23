@@ -1,27 +1,79 @@
 # coding=utf-8
 from __future__ import absolute_import
 
-### (Don't forget to remove me)
-# This is a basic skeleton for your plugin's __init__.py. You probably want to adjust the class name of your plugin
-# as well as the plugin mixins it's subclassing from. This is really just a basic skeleton to get you started,
-# defining your plugin as a template plugin, settings and asset plugin. Feel free to add or remove mixins
-# as necessary.
-#
-# Take a look at the documentation on what other plugin mixins are available.
-
 import octoprint.plugin
+import logging
+from octoprint.events import eventManager, Events
 
 class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
-    octoprint.plugin.AssetPlugin,
-    octoprint.plugin.TemplatePlugin
-):
+                                octoprint.plugin.AssetPlugin,
+                                octoprint.plugin.TemplatePlugin,
+                                octoprint.plugin.StartupPlugin ):
 
     ##~~ SettingsPlugin mixin
 
     def get_settings_defaults(self):
-        return {
-            # put your plugin's default settings here
-        }
+        return dict(
+            received_gcode_hooks=[{'gcode': ''}]
+        )
+
+    def on_settings_initialized(self):
+        received_gcode_hooks = self._settings.get(["received_gcode_hooks"])
+        self._logger.info("received_gcode_hooks settings initialized: '{}'".format(received_gcode_hooks))
+#       # On initialization check for incomplete settings!
+#       modified=False
+#       for idx, ctrl in enumerate(received_gcode_hooks):
+#           if not self.checkLightControlEntryKeys(ctrl):
+#               lightControls[idx] = self.updateLightControlEntry(ctrl)
+#               modified=True
+#           self.gpio_startup(lightControls[idx]["pin"], lightControls[idx])
+#
+#       if modified:
+#           self._settings.set(["light_controls"], lightControls)
+
+    def on_settings_save(self, data):
+        # Get old settings:
+
+        # Get updated settings
+        octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+
+        # Handle changes (if new != old)
+        self._logger.info("received_gcode_hooks settings saved: '{}'".format(self._settings.get(["received_gcode_hooks"])))
+
+    ##~~ StartupPlugin mixin
+ 
+    def on_after_startup(self):
+        self.triggered = False
+        
+    ##~~ octoprint.events.register_custom_events Plugin Hook:
+    def register_custom_events(self, *args, **kwargs):
+        return ["notify"]
+    
+    ##~~ octoprint.comm.protocol.gcode.received Plugin Hook:
+    def recv_callback(self, comm_instance, line, *args, **kwargs):
+        # Found keyword, fire event and block until other text is received
+        if "echo:busy: paused for user" in line:
+            self._logger.info("Custom GCode Pause received...")
+            if not self.triggered:
+                self._logger.info("Firing evnt...")
+                eventManager().fire(Events.PLUGIN_CUSTOM_GCODE_EVENTS_NOTIFY)
+                self.triggered = True
+        # Other text, we may fire another event if we encounter "paused for user" again
+        else:
+            self.triggered = False
+            
+        return line
+
+    ##~~ octoprint.comm.protocol.gcode.sending Plugin Hook:
+    # https://docs.octoprint.org/en/master/plugins/hooks.html#octoprint-comm-protocol-gcode-phase
+    def sent_callback(self, comm_instance, phase, cmd, cmd_type, gcode, subcode=None, tags=None, *args, **kwargs):
+    #   if ( not gcode or self.active_gcode_send_events == None or len(self.active_gcode_send_events) == 0 ):
+    #       return None
+
+		# Do processing...
+
+        return None
+
 
     ##~~ AssetPlugin mixin
 
@@ -30,9 +82,16 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
         # core UI here.
         return {
             "js": ["js/custom_gcode_events.js"],
-            "css": ["css/custom_gcode_events.css"],
-            "less": ["less/custom_gcode_events.less"]
         }
+
+
+    ##~~ TemplatePlugin mixin
+
+    def get_template_configs(self):
+        return [ 
+            dict(type="settings", template="custom_gcode_events_settings.jinja2", custom_bindings=True)
+        ]
+
 
     ##~~ Softwareupdate hook
 
@@ -56,18 +115,9 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
             }
         }
 
-
-# If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
-# ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
-# can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
 __plugin_name__ = "Custom_gcode_events Plugin"
 
-# Starting with OctoPrint 1.4.0 OctoPrint will also support to run under Python 3 in addition to the deprecated
-# Python 2. New plugins should make sure to run under both versions for now. Uncomment one of the following
-# compatibility flags according to what Python versions your plugin supports!
-#__plugin_pythoncompat__ = ">=2.7,<3" # only python 2
-#__plugin_pythoncompat__ = ">=3,<4" # only python 3
-#__plugin_pythoncompat__ = ">=2.7,<4" # python 2 and 3
+__plugin_pythoncompat__ = ">=3,<4" # only python 3
 
 def __plugin_load__():
     global __plugin_implementation__
@@ -75,5 +125,8 @@ def __plugin_load__():
 
     global __plugin_hooks__
     __plugin_hooks__ = {
-        "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
+        "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
+        "octoprint.comm.protocol.gcode.received": __plugin_implementation__.recv_callback,
+        "octoprint.comm.protocol.gcode.sent": __plugin_implementation__.sent_callback,
+        "octoprint.events.register_custom_events": __plugin_implementation__.register_custom_events
     }

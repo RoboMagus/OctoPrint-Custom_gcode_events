@@ -1,0 +1,21 @@
+<!-- ko allowBindings: true -->
+<form id="settings_plugin_custom_gcode_events" class="form-horizontal">
+    <h2>{{ _('Custom GCode Events') }}</h2>
+    <h3>{{ _('GCode Received Hooks') }}</h3>
+    <div data-bind="foreach: settings.settings.plugins.custom_gcode_events.received_gcode_hooks">
+        <div class="row-fluid" style="margin-bottom: 5px">
+            <div class="span3">
+                <input type="text" class="span12 text-right" data-bind="value: gcode">
+            </div>
+            <div class="span1">
+                <button title="Remove Hook" class="btn btn-danger" data-bind="click: $parent.removeRcvdEvent"><i class="fa fa-trash-o"></i></button>
+            </div>
+        </div>
+    </div>
+    <div class="row-fluid">
+        <div class="offset9 span2">
+            <button title="Add Rcvd Hook" class="btn btn-primary" data-bind="click: addRcvdEvent"><i class="fa fa-plus"></i></button>
+        </div>
+    </div>
+</form>
+<!-- /ko -->
