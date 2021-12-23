@@ -13,6 +13,7 @@ $(function() {
         self.settings = parameters[0];
         
         self.received_gcode_hooks = ko.observableArray();
+        self.sent_gcode_hooks     = ko.observableArray();
 
         self.onSettingsBeforeSave = function() {
             // ko.utils.arrayForEach(self.settings.settings.plugins.LightControls.light_controls(), function (item, index) {
@@ -22,13 +23,28 @@ $(function() {
         
         self.addRcvdEvent = function() {
             self.settings.settings.plugins.custom_gcode_events.received_gcode_hooks.push({
-                gcode: ko.observable('') });
+                gcode: ko.observable(''),
+                event: ko.observable(''),
+                exactMatch: ko.observable('true') });
             self.received_gcode_hooks(self.settings.settings.plugins.custom_gcode_events.received_gcode_hooks());
         };
 
         self.removeRcvdEvent = function(profile) {
             self.settings.settings.plugins.custom_gcode_events.received_gcode_hooks.remove(profile);
             self.received_gcode_hooks(self.settings.settings.plugins.custom_gcode_events.received_gcode_hooks());
+        };
+
+        self.addSntEvent = function() {
+            self.settings.settings.plugins.custom_gcode_events.sent_gcode_hooks.push({
+                gcode: ko.observable(''),
+                event: ko.observable(''),
+                exactMatch: ko.observable('true') });
+            self.sent_gcode_hooks(self.settings.settings.plugins.custom_gcode_events.sent_gcode_hooks());
+        };
+
+        self.removeSntEvent = function(profile) {
+            self.settings.settings.plugins.custom_gcode_events.sent_gcode_hooks.remove(profile);
+            self.sent_gcode_hooks(self.settings.settings.plugins.custom_gcode_events.sent_gcode_hooks());
         };
     }
 

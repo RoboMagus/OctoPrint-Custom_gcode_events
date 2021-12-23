@@ -1,11 +1,24 @@
 <!-- ko allowBindings: true -->
 <form id="settings_plugin_custom_gcode_events" class="form-horizontal">
     <h2>{{ _('Custom GCode Events') }}</h2>
+    <span>Enter a match for the sent or received GCode in the 'GCode' field, and an event string to be emitted when a match for the GCode occurs. Note that this event string must be lower-case and without spaces (Or it will be made into one upon saving)!!</span></br>
+    <span>GCode matches can be selected to be either an exact match, or match when the sent / received GCode contains the text specified below. Note that checking for exact matches is significantly faster and should be considered to be used whenever possible to avoid slowdowns!!</span>
     <h3>{{ _('GCode Received Hooks') }}</h3>
+    <div class="row-fluid">
+        <div class="span4 text-center"><h4>{{ _('G-Code') }}</h4></div>
+        <div class="span5 text-center"><h4>{{ _('Event') }}</h4></div>
+        <div class="span1 text-center"><h4>{{ _('Exact Match') }}</h4></div>
+    </div>
     <div data-bind="foreach: settings.settings.plugins.custom_gcode_events.received_gcode_hooks">
         <div class="row-fluid" style="margin-bottom: 5px">
-            <div class="span3">
+            <div class="span4">
                 <input type="text" class="span12 text-right" data-bind="value: gcode">
+            </div>
+            <div class="span5">
+                <input type="text" class="span12 text-right" data-bind="value: event">
+            </div>
+            <div class="span1">
+                <input style="padding: 4px; margin: 2px;" type="checkbox" class="span12 text-right" data-bind="checked: exactMatch">
             </div>
             <div class="span1">
                 <button title="Remove Hook" class="btn btn-danger" data-bind="click: $parent.removeRcvdEvent"><i class="fa fa-trash-o"></i></button>
@@ -13,8 +26,35 @@
         </div>
     </div>
     <div class="row-fluid">
-        <div class="offset9 span2">
+        <div class="offset10 span2">
             <button title="Add Rcvd Hook" class="btn btn-primary" data-bind="click: addRcvdEvent"><i class="fa fa-plus"></i></button>
+        </div>
+    </div>
+    <h3>{{ _('GCode Sent Hooks') }}</h3>
+    <div class="row-fluid">
+        <div class="span4 text-center"><h4>{{ _('G-Code') }}</h4></div>
+        <div class="span5 text-center"><h4>{{ _('Event') }}</h4></div>
+        <div class="span1 text-center"><h4>{{ _('Exact Match') }}</h4></div>
+    </div>
+    <div data-bind="foreach: settings.settings.plugins.custom_gcode_events.sent_gcode_hooks">
+        <div class="row-fluid" style="margin-bottom: 5px">
+            <div class="span4">
+                <input type="text" class="span12 text-right" data-bind="value: gcode">
+            </div>
+            <div class="span5">
+                <input type="text" class="span12 text-right" data-bind="value: event">
+            </div>
+            <div class="span1">
+                <input style="padding: 4px; margin: 2px;" type="checkbox" class="span12 text-right" data-bind="checked: exactMatch">
+            </div>
+            <div class="span1">
+                <button title="Remove Hook" class="btn btn-danger" data-bind="click: $parent.removeSntEvent"><i class="fa fa-trash-o"></i></button>
+            </div>
+        </div>
+    </div>
+    <div class="row-fluid">
+        <div class="offset10 span2">
+            <button title="Add Sent Hook" class="btn btn-primary" data-bind="click: addSntEvent"><i class="fa fa-plus"></i></button>
         </div>
     </div>
 </form>

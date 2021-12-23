@@ -3,7 +3,18 @@ from __future__ import absolute_import
 
 import octoprint.plugin
 import logging
+import traceback
+
 from octoprint.events import eventManager, Events
+
+
+## NOTES:
+# - Can fire custom events as strings. No need to register beforehand.
+# - Restrict to lower-case, trim whitespace and convert '-' and ' ' to '_' when saving settings.
+# - Prepend with Gcode_event_*
+
+# Distinction between contains ('in') and == during GCode handling..
+
 
 class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
                                 octoprint.plugin.AssetPlugin,
@@ -14,12 +25,15 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
 
     def get_settings_defaults(self):
         return dict(
-            received_gcode_hooks=[{'gcode': ''}]
+            received_gcode_hooks=[{'gcode': '', 'event': '', 'exactMatch': True}],
+            sent_gcode_hooks=[{'gcode': '', 'event': '', 'exactMatch': True}]
         )
 
     def on_settings_initialized(self):
         received_gcode_hooks = self._settings.get(["received_gcode_hooks"])
+        sent_gcode_hooks = self._settings.get(["c"])
         self._logger.info("received_gcode_hooks settings initialized: '{}'".format(received_gcode_hooks))
+        self._logger.info("sent_gcode_hooks settings initialized: '{}'".format(sent_gcode_hooks))
 #       # On initialization check for incomplete settings!
 #       modified=False
 #       for idx, ctrl in enumerate(received_gcode_hooks):
@@ -39,24 +53,23 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
 
         # Handle changes (if new != old)
         self._logger.info("received_gcode_hooks settings saved: '{}'".format(self._settings.get(["received_gcode_hooks"])))
+        self._logger.info("    sent_gcode_hooks settings saved: '{}'".format(self._settings.get(["sent_gcode_hooks"])))
 
     ##~~ StartupPlugin mixin
  
     def on_after_startup(self):
+        self._logger.info("CustomGcodeEvents Startup()")
+        eventManager().fire("custom_fire_at_startup")
         self.triggered = False
-        
-    ##~~ octoprint.events.register_custom_events Plugin Hook:
-    def register_custom_events(self, *args, **kwargs):
-        return ["notify"]
     
     ##~~ octoprint.comm.protocol.gcode.received Plugin Hook:
     def recv_callback(self, comm_instance, line, *args, **kwargs):
         # Found keyword, fire event and block until other text is received
-        if "echo:busy: paused for user" in line:
+        if line.startswith("echo:busy: paused for user"):
             self._logger.info("Custom GCode Pause received...")
             if not self.triggered:
                 self._logger.info("Firing evnt...")
-                eventManager().fire(Events.PLUGIN_CUSTOM_GCODE_EVENTS_NOTIFY)
+                eventManager().fire('gcode_event_paused_for_user')
                 self.triggered = True
         # Other text, we may fire another event if we encounter "paused for user" again
         else:
@@ -101,7 +114,7 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
         # for details.
         return {
             "custom_gcode_events": {
-                "displayName": "Custom_gcode_events Plugin",
+                "displayName": "Custom GCode Events",
                 "displayVersion": self._plugin_version,
 
                 # version check: github repository
@@ -115,7 +128,7 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
             }
         }
 
-__plugin_name__ = "Custom_gcode_events Plugin"
+__plugin_name__ = "Custom GCode Events"
 
 __plugin_pythoncompat__ = ">=3,<4" # only python 3
 
@@ -127,6 +140,5 @@ def __plugin_load__():
     __plugin_hooks__ = {
         "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
         "octoprint.comm.protocol.gcode.received": __plugin_implementation__.recv_callback,
-        "octoprint.comm.protocol.gcode.sent": __plugin_implementation__.sent_callback,
-        "octoprint.events.register_custom_events": __plugin_implementation__.register_custom_events
+        "octoprint.comm.protocol.gcode.sent": __plugin_implementation__.sent_callback
     }
