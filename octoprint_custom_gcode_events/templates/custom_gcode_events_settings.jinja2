@@ -1,7 +1,7 @@
 <!-- ko allowBindings: true -->
 <form id="settings_plugin_custom_gcode_events" class="form-horizontal">
     <h2>{{ _('Custom GCode Events') }}</h2>
-    <span>Enter a match for the sent or received GCode in the 'GCode' field, and an event string to be emitted when a match for the GCode occurs. Note that this event string must be lower-case and without spaces (Or it will be made into one upon saving)!!</span></br>
+    <span>Enter a match for the sent or received GCode in the 'GCode' field, and an event string to be emitted when a match for the GCode occurs. Note that this event string must be lower-case and without spaces (Or it will be made into one upon saving)!! This string will also be prepended with 'gcode_event_' as an event identifier.</span></br>
     <span>GCode matches can be selected to be either an exact match, or match when the sent / received GCode contains the text specified below. Note that checking for exact matches is significantly faster and should be considered to be used whenever possible to avoid slowdowns!!</span>
     <h3>{{ _('GCode Received Hooks') }}</h3>
     <div class="row-fluid">

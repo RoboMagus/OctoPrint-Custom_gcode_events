@@ -30,10 +30,10 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
         )
 
     def on_settings_initialized(self):
-        received_gcode_hooks = self._settings.get(["received_gcode_hooks"])
-        sent_gcode_hooks = self._settings.get(["c"])
-        self._logger.info("received_gcode_hooks settings initialized: '{}'".format(received_gcode_hooks))
-        self._logger.info("sent_gcode_hooks settings initialized: '{}'".format(sent_gcode_hooks))
+        self.received_gcode_hooks = self._settings.get(["received_gcode_hooks"])
+        self.sent_gcode_hooks = self._settings.get(["sent_gcode_hooks"])
+        self._logger.info("received_gcode_hooks settings initialized: '{}'".format(self.received_gcode_hooks))
+        self._logger.info("sent_gcode_hooks settings initialized: '{}'".format(self.sent_gcode_hooks))
 #       # On initialization check for incomplete settings!
 #       modified=False
 #       for idx, ctrl in enumerate(received_gcode_hooks):
@@ -54,6 +54,9 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
         # Handle changes (if new != old)
         self._logger.info("received_gcode_hooks settings saved: '{}'".format(self._settings.get(["received_gcode_hooks"])))
         self._logger.info("    sent_gcode_hooks settings saved: '{}'".format(self._settings.get(["sent_gcode_hooks"])))
+        self.received_gcode_hooks = self._settings.get(["received_gcode_hooks"])
+        self.sent_gcode_hooks = self._settings.get(["sent_gcode_hooks"])
+
 
     ##~~ StartupPlugin mixin
  
@@ -64,26 +67,42 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
     
     ##~~ octoprint.comm.protocol.gcode.received Plugin Hook:
     def recv_callback(self, comm_instance, line, *args, **kwargs):
-        # Found keyword, fire event and block until other text is received
-        if line.startswith("echo:busy: paused for user"):
-            self._logger.info("Custom GCode Pause received...")
-            if not self.triggered:
-                self._logger.info("Firing evnt...")
-                eventManager().fire('gcode_event_paused_for_user')
-                self.triggered = True
-        # Other text, we may fire another event if we encounter "paused for user" again
-        else:
-            self.triggered = False
-            
+        if ( not line or self.received_gcode_hooks == None or len(self.received_gcode_hooks) == 0 ):
+            return line
+        # Do processing...
+        try:
+            for entry in self.received_gcode_hooks:
+                if entry["exactMatch"] and line == entry["gcode"]:
+                    self._logger.info("Received exact match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["event"]))
+                    eventManager().fire('gcode_event_' + entry["event"])
+                elif entry["gcode"] in line:
+                    self._logger.info("Received 'contains' match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["event"]))
+                    eventManager().fire('gcode_event_' + entry["event"])
+        except:
+            exc_type, exc_value, exc_tb = sys.exc_info()
+            self._logger.error("exception in recv_callback(): {}, {}".format(exc_type, exc_value))
+            self._logger.error("TraceBack: {}".format(traceback.extract_tb(exc_tb)))
+
         return line
 
     ##~~ octoprint.comm.protocol.gcode.sending Plugin Hook:
     # https://docs.octoprint.org/en/master/plugins/hooks.html#octoprint-comm-protocol-gcode-phase
     def sent_callback(self, comm_instance, phase, cmd, cmd_type, gcode, subcode=None, tags=None, *args, **kwargs):
-    #   if ( not gcode or self.active_gcode_send_events == None or len(self.active_gcode_send_events) == 0 ):
-    #       return None
-
-		# Do processing...
+        if ( not gcode or self.sent_gcode_hooks == None or len(self.sent_gcode_hooks) == 0 ):
+            return None
+        # Do processing...
+        try:
+            for entry in self.sent_gcode_hooks:
+                if entry["exactMatch"] and gcode == entry["gcode"]:
+                    self._logger.info("Sent exact match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["event"]))
+                    eventManager().fire('gcode_event_' + entry["event"])
+                elif entry["gcode"] in gcode:
+                    self._logger.info("Sent 'contains' match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["event"]))
+                    eventManager().fire('gcode_event_' + entry["event"])
+        except:
+            exc_type, exc_value, exc_tb = sys.exc_info()
+            self._logger.error("exception in sent_callback(): {}, {}".format(exc_type, exc_value))
+            self._logger.error("TraceBack: {}".format(traceback.extract_tb(exc_tb)))
 
         return None
 
