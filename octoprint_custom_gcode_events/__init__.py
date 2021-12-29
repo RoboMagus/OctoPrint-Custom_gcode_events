@@ -15,6 +15,10 @@ from octoprint.events import eventManager, Events
 
 # Distinction between contains ('in') and == during GCode handling..
 
+## ToDo:
+#  - Match types: exact, startswith, contains, regex
+#  - Option to use same publish topic, with additional comment (=event)
+
 
 class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
                                 octoprint.plugin.AssetPlugin,
@@ -25,8 +29,8 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
 
     def get_settings_defaults(self):
         return dict(
-            received_gcode_hooks=[{'gcode': '', 'event': '', 'exactMatch': True}],
-            sent_gcode_hooks=[{'gcode': '', 'event': '', 'exactMatch': True}]
+            received_gcode_hooks=[{'gcode': '', 'topic': '', 'event': '', 'exactMatch': True}],
+            sent_gcode_hooks=[{'gcode': '', 'topic': '', 'event': '', 'exactMatch': True}]
         )
 
     def on_settings_initialized(self):
@@ -51,18 +55,31 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
         # Get updated settings
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
-        # Handle changes (if new != old)
-        self._logger.info("received_gcode_hooks settings saved: '{}'".format(self._settings.get(["received_gcode_hooks"])))
-        self._logger.info("    sent_gcode_hooks settings saved: '{}'".format(self._settings.get(["sent_gcode_hooks"])))
+        received_gcode_hooks = self._settings.get(["received_gcode_hooks"])
+        for idx, hook in enumerate(received_gcode_hooks):
+            received_gcode_hooks[idx]["topic"] = hook["topic"].strip().lower().replace(" ","_").replace("-","_").replace("/","_").replace("$","").replace("#","")
+            received_gcode_hooks[idx]["event"] = hook["event"].strip()
+
+        sent_gcode_hooks = self._settings.get(["sent_gcode_hooks"])
+        for idx, hook in enumerate(sent_gcode_hooks):
+            sent_gcode_hooks[idx]["topic"] = hook["topic"].strip().lower().replace(" ","_").replace("-","_").replace("/","_").replace("$","").replace("#","")
+            sent_gcode_hooks[idx]["event"] = hook["event"].strip()
+
+        self._settings.set(["received_gcode_hooks"], received_gcode_hooks)
+        self._settings.set(["sent_gcode_hooks"]    , sent_gcode_hooks    )
+
         self.received_gcode_hooks = self._settings.get(["received_gcode_hooks"])
         self.sent_gcode_hooks = self._settings.get(["sent_gcode_hooks"])
+
+        # Handle changes (if new != old)
+        self._logger.info("received_gcode_hooks settings saved: '{}'".format(self.received_gcode_hooks))
+        self._logger.info("    sent_gcode_hooks settings saved: '{}'".format(self.sent_gcode_hooks    ))
 
 
     ##~~ StartupPlugin mixin
  
     def on_after_startup(self):
         self._logger.info("CustomGcodeEvents Startup()")
-        eventManager().fire("custom_fire_at_startup")
         self.triggered = False
     
     ##~~ octoprint.comm.protocol.gcode.received Plugin Hook:
@@ -73,11 +90,17 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
         try:
             for entry in self.received_gcode_hooks:
                 if entry["exactMatch"] and line == entry["gcode"]:
-                    self._logger.info("Received exact match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["event"]))
-                    eventManager().fire('gcode_event_' + entry["event"])
+                    self._logger.info("Received exact match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["topic"]))
+                    payload = {"gcode": line}
+                    if entry["event"]:
+                        payload["event"] = entry["event"]
+                    eventManager().fire('gcode_event_' + entry["topic"], payload)
                 elif entry["gcode"] in line:
-                    self._logger.info("Received 'contains' match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["event"]))
-                    eventManager().fire('gcode_event_' + entry["event"])
+                    self._logger.info("Received 'contains' match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["topic"]))
+                    payload = {"gcode": line}
+                    if entry["event"]:
+                        payload["event"] = entry["event"]
+                    eventManager().fire('gcode_event_' + entry["topic"], payload)
         except:
             exc_type, exc_value, exc_tb = sys.exc_info()
             self._logger.error("exception in recv_callback(): {}, {}".format(exc_type, exc_value))
@@ -94,11 +117,17 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
         try:
             for entry in self.sent_gcode_hooks:
                 if entry["exactMatch"] and gcode == entry["gcode"]:
-                    self._logger.info("Sent exact match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["event"]))
-                    eventManager().fire('gcode_event_' + entry["event"])
+                    self._logger.info("Sent exact match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["topic"]))
+                    payload = {"gcode": gcode, "cmd": cmd}
+                    if entry["event"]:
+                        payload["event"] = entry["event"]
+                    eventManager().fire('gcode_event_' + entry["topic"], payload)
                 elif entry["gcode"] in gcode:
-                    self._logger.info("Sent 'contains' match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["event"]))
-                    eventManager().fire('gcode_event_' + entry["event"])
+                    self._logger.info("Sent 'contains' match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["topic"]))
+                    payload = {"gcode": gcode, "cmd": cmd}
+                    if entry["event"]:
+                        payload["event"] = entry["event"]
+                    eventManager().fire('gcode_event_' + entry["topic"], payload)
         except:
             exc_type, exc_value, exc_tb = sys.exc_info()
             self._logger.error("exception in sent_callback(): {}, {}".format(exc_type, exc_value))

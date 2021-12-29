@@ -24,6 +24,7 @@ $(function() {
         self.addRcvdEvent = function() {
             self.settings.settings.plugins.custom_gcode_events.received_gcode_hooks.push({
                 gcode: ko.observable(''),
+                topic: ko.observable(''),
                 event: ko.observable(''),
                 exactMatch: ko.observable('true') });
             self.received_gcode_hooks(self.settings.settings.plugins.custom_gcode_events.received_gcode_hooks());
@@ -37,6 +38,7 @@ $(function() {
         self.addSntEvent = function() {
             self.settings.settings.plugins.custom_gcode_events.sent_gcode_hooks.push({
                 gcode: ko.observable(''),
+                topic: ko.observable(''),
                 event: ko.observable(''),
                 exactMatch: ko.observable('true') });
             self.sent_gcode_hooks(self.settings.settings.plugins.custom_gcode_events.sent_gcode_hooks());
