@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import octoprint.plugin
 import logging
 import traceback
+import time
 
 from octoprint.events import eventManager, Events
 
@@ -38,17 +39,7 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
         self.sent_gcode_hooks = self._settings.get(["sent_gcode_hooks"])
         self._logger.info("received_gcode_hooks settings initialized: '{}'".format(self.received_gcode_hooks))
         self._logger.info("sent_gcode_hooks settings initialized: '{}'".format(self.sent_gcode_hooks))
-#       # On initialization check for incomplete settings!
-#       modified=False
-#       for idx, ctrl in enumerate(received_gcode_hooks):
-#           if not self.checkLightControlEntryKeys(ctrl):
-#               lightControls[idx] = self.updateLightControlEntry(ctrl)
-#               modified=True
-#           self.gpio_startup(lightControls[idx]["pin"], lightControls[idx])
-#
-#       if modified:
-#           self._settings.set(["light_controls"], lightControls)
-
+        
     def on_settings_save(self, data):
         # Get old settings:
 
@@ -81,26 +72,29 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
     def on_after_startup(self):
         self._logger.info("CustomGcodeEvents Startup()")
         self.triggered = False
-    
+
     ##~~ octoprint.comm.protocol.gcode.received Plugin Hook:
     def recv_callback(self, comm_instance, line, *args, **kwargs):
-        if ( not line or self.received_gcode_hooks == None or len(self.received_gcode_hooks) == 0 ):
+        if ( not line or line == "ok" or self.received_gcode_hooks == None or len(self.received_gcode_hooks) == 0 ):
             return line
         # Do processing...
         try:
+            refire_threshold = int(time.time()) - 5
             for entry in self.received_gcode_hooks:
+                _match = False
                 if entry["exactMatch"] and line == entry["gcode"]:
-                    self._logger.info("Received exact match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["topic"]))
-                    payload = {"gcode": line}
-                    if entry["event"]:
-                        payload["event"] = entry["event"]
-                    eventManager().fire('gcode_event_' + entry["topic"], payload)
+                    _match = True
                 elif entry["gcode"] in line:
-                    self._logger.info("Received 'contains' match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["topic"]))
-                    payload = {"gcode": line}
-                    if entry["event"]:
-                        payload["event"] = entry["event"]
-                    eventManager().fire('gcode_event_' + entry["topic"], payload)
+                    _match = True
+
+                if _match:
+                    if entry.get('timestamp', 0) <= refire_threshold:
+                        self._logger.info("Received match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["topic"]))
+                        self.fire_event(entry, {"gcode": line})
+                    else:
+                        self._logger.info("Prevent firinng for event '{}'. Occured within repetition interval!!".format(entry["gcode"]))
+                        entry["timestamp"] = int(time.time())
+
         except:
             exc_type, exc_value, exc_tb = sys.exc_info()
             self._logger.error("exception in recv_callback(): {}, {}".format(exc_type, exc_value))
@@ -118,16 +112,10 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
             for entry in self.sent_gcode_hooks:
                 if entry["exactMatch"] and gcode == entry["gcode"]:
                     self._logger.info("Sent exact match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["topic"]))
-                    payload = {"gcode": gcode, "cmd": cmd}
-                    if entry["event"]:
-                        payload["event"] = entry["event"]
-                    eventManager().fire('gcode_event_' + entry["topic"], payload)
+                    self.fire_event(entry, {"gcode": gcode, "cmd": cmd})
                 elif entry["gcode"] in gcode:
                     self._logger.info("Sent 'contains' match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["topic"]))
-                    payload = {"gcode": gcode, "cmd": cmd}
-                    if entry["event"]:
-                        payload["event"] = entry["event"]
-                    eventManager().fire('gcode_event_' + entry["topic"], payload)
+                    self.fire_event(entry, {"gcode": gcode, "cmd": cmd})
         except:
             exc_type, exc_value, exc_tb = sys.exc_info()
             self._logger.error("exception in sent_callback(): {}, {}".format(exc_type, exc_value))
@@ -135,6 +123,11 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
 
         return None
 
+    def fire_event(self, entry, payload):
+        if entry["event"]:
+            payload["event"] = entry["event"]
+        eventManager().fire('gcode_event_' + entry["topic"], payload)
+        entry["timestamp"] = int(time.time())
 
     ##~~ AssetPlugin mixin
 
