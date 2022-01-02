@@ -9,17 +9,8 @@ import time
 from octoprint.events import eventManager, Events
 
 
-## NOTES:
-# - Can fire custom events as strings. No need to register beforehand.
-# - Restrict to lower-case, trim whitespace and convert '-' and ' ' to '_' when saving settings.
-# - Prepend with Gcode_event_*
-
-# Distinction between contains ('in') and == during GCode handling..
-
 ## ToDo:
 #  - Match types: exact, startswith, contains, regex
-#  - Option to use same publish topic, with additional comment (=event)
-
 
 class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
                                 octoprint.plugin.AssetPlugin,
