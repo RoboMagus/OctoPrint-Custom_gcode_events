@@ -14,12 +14,6 @@ $(function() {
         
         self.received_gcode_hooks = ko.observableArray();
         self.sent_gcode_hooks     = ko.observableArray();
-
-        self.onSettingsBeforeSave = function() {
-            // ko.utils.arrayForEach(self.settings.settings.plugins.LightControls.light_controls(), function (item, index) {
-            // });
-        };
-
         
         self.addRcvdEvent = function() {
             self.settings.settings.plugins.custom_gcode_events.received_gcode_hooks.push({

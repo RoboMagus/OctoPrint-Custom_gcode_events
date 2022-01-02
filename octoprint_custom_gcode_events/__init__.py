@@ -6,8 +6,7 @@ import logging
 import traceback
 import time
 
-from octoprint.events import eventManager, Events
-
+from octoprint.events import eventManager
 
 ## ToDo:
 #  - Match types: exact, startswith, contains, regex
@@ -32,8 +31,6 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
         self._logger.info("sent_gcode_hooks settings initialized: '{}'".format(self.sent_gcode_hooks))
         
     def on_settings_save(self, data):
-        # Get old settings:
-
         # Get updated settings
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
@@ -53,7 +50,6 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
         self.received_gcode_hooks = self._settings.get(["received_gcode_hooks"])
         self.sent_gcode_hooks = self._settings.get(["sent_gcode_hooks"])
 
-        # Handle changes (if new != old)
         self._logger.info("received_gcode_hooks settings saved: '{}'".format(self.received_gcode_hooks))
         self._logger.info("    sent_gcode_hooks settings saved: '{}'".format(self.sent_gcode_hooks    ))
 
@@ -62,7 +58,6 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
  
     def on_after_startup(self):
         self._logger.info("CustomGcodeEvents Startup()")
-        self.triggered = False
 
     ##~~ octoprint.comm.protocol.gcode.received Plugin Hook:
     def recv_callback(self, comm_instance, line, *args, **kwargs):
