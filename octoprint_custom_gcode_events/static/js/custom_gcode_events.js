@@ -17,6 +17,7 @@ $(function() {
         
         self.addRcvdEvent = function() {
             self.settings.settings.plugins.custom_gcode_events.received_gcode_hooks.push({
+                enabled: ko.observable(true),
                 gcode: ko.observable(''),
                 topic: ko.observable(''),
                 event: ko.observable(''),
@@ -31,6 +32,7 @@ $(function() {
 
         self.addSntEvent = function() {
             self.settings.settings.plugins.custom_gcode_events.sent_gcode_hooks.push({
+                enabled: ko.observable(true),
                 gcode: ko.observable(''),
                 topic: ko.observable(''),
                 event: ko.observable(''),

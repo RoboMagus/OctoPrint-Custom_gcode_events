@@ -1,10 +1,10 @@
 # coding=utf-8
 from __future__ import absolute_import
 
-import octoprint.plugin
-import logging
+import copy
 import traceback
 import time
+import octoprint.plugin
 
 from octoprint.events import eventManager
 
@@ -16,17 +16,53 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
                                 octoprint.plugin.TemplatePlugin,
                                 octoprint.plugin.StartupPlugin ):
 
+    defaultEntry = {'gcode': '',
+                    'topic': '',
+                    'event': '',
+                    'exactMatch': False,
+                    'enabled': True }
+                    
     ##~~ SettingsPlugin mixin
 
     def get_settings_defaults(self):
         return dict(
-            received_gcode_hooks=[{'gcode': '', 'topic': '', 'event': '', 'exactMatch': True}],
-            sent_gcode_hooks=[{'gcode': '', 'topic': '', 'event': '', 'exactMatch': True}]
+            received_gcode_hooks=[{'gcode': '', 'topic': '', 'event': '', 'exactMatch': True, 'enabled': True}],
+            sent_gcode_hooks=[{'gcode': '', 'topic': '', 'event': '', 'exactMatch': True, 'enabled': True}]
         )
+
+    def checkEventEntry(self, entry):
+            return set(self.defaultEntry.keys()) == set(entry.keys())
+
+    def updateEventEntry(self, entry):
+        _entry = copy.deepcopy(self.defaultEntry)
+        for key in entry:
+            _entry[key]=entry[key]
+        self._logger.debug("Updated EventEntry from: {}, to {}".format(entry, _entry))
+        return _entry
 
     def on_settings_initialized(self):
         self.received_gcode_hooks = self._settings.get(["received_gcode_hooks"])
         self.sent_gcode_hooks = self._settings.get(["sent_gcode_hooks"])
+
+        # On initialization check for incomplete settings!
+        modified=False
+        for idx, evt in enumerate(self.received_gcode_hooks):
+            if not self.checkEventEntry(evt):
+                self.received_gcode_hooks[idx] = self.updateEventEntry(evt)
+                modified=True 
+
+        if modified:
+            self._settings.set(["received_gcode_hooks"], self.received_gcode_hooks)
+
+        modified=False
+        for idx, evt in enumerate(self.sent_gcode_hooks):
+            if not self.checkEventEntry(evt):
+                self.sent_gcode_hooks[idx] = self.updateEventEntry(evt)
+                modified=True 
+
+        if modified:
+            self._settings.set(["sent_gcode_hooks"], self.sent_gcode_hooks)
+
         self._logger.info("received_gcode_hooks settings initialized: '{}'".format(self.received_gcode_hooks))
         self._logger.info("sent_gcode_hooks settings initialized: '{}'".format(self.sent_gcode_hooks))
         
@@ -67,19 +103,20 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
         try:
             refire_threshold = int(time.time()) - 5
             for entry in self.received_gcode_hooks:
-                _match = False
-                if entry["exactMatch"] and line == entry["gcode"]:
-                    _match = True
-                elif entry["gcode"] in line:
-                    _match = True
+                if entry["enabled"]:
+                    _match = False
+                    if entry["exactMatch"] and line == entry["gcode"]:
+                        _match = True
+                    elif entry["gcode"] in line:
+                        _match = True
 
-                if _match:
-                    if entry.get('timestamp', 0) <= refire_threshold:
-                        self._logger.info("Received match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["topic"]))
-                        self.fire_event(entry, {"gcode": line})
-                    else:
-                        self._logger.info("Prevent firinng for event '{}'. Occured within repetition interval!!".format(entry["gcode"]))
-                        entry["timestamp"] = int(time.time())
+                    if _match:
+                        if entry.get('timestamp', 0) <= refire_threshold:
+                            self._logger.info("Received match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["topic"]))
+                            self.fire_event(entry, {"gcode": line})
+                        else:
+                            self._logger.info("Prevent firinng for event '{}'. Occured within repetition interval!!".format(entry["gcode"]))
+                            entry["timestamp"] = int(time.time())
 
         except:
             exc_type, exc_value, exc_tb = sys.exc_info()
@@ -96,12 +133,13 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
         # Do processing...
         try:
             for entry in self.sent_gcode_hooks:
-                if entry["exactMatch"] and gcode == entry["gcode"]:
-                    self._logger.info("Sent exact match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["topic"]))
-                    self.fire_event(entry, {"gcode": gcode, "cmd": cmd})
-                elif entry["gcode"] in gcode:
-                    self._logger.info("Sent 'contains' match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["topic"]))
-                    self.fire_event(entry, {"gcode": gcode, "cmd": cmd})
+                if entry["enabled"]:
+                    if entry["exactMatch"] and gcode == entry["gcode"]:
+                        self._logger.info("Sent exact match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["topic"]))
+                        self.fire_event(entry, {"gcode": gcode, "cmd": cmd})
+                    elif entry["gcode"] in gcode:
+                        self._logger.info("Sent 'contains' match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["topic"]))
+                        self.fire_event(entry, {"gcode": gcode, "cmd": cmd})
         except:
             exc_type, exc_value, exc_tb = sys.exc_info()
             self._logger.error("exception in sent_callback(): {}, {}".format(exc_type, exc_value))

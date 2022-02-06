@@ -6,24 +6,28 @@
     <span>GCode matches can be selected to be either an exact match, or match when the sent / received GCode contains the text specified below. Note that checking for exact matches is significantly faster and should be considered to be used whenever possible to avoid slowdowns!!</span>
     <h3>{{ _('GCode Received Hooks') }}</h3>
     <div class="row-fluid">
+        <div class="span1 text-center"><h4>{{ _('Enabled') }}</h4></div>
         <div class="span3 text-center"><h4>{{ _('G-Code') }}</h4></div>
         <div class="span3 text-center"><h4>{{ _('Topic') }}</h4></div>
-        <div class="span4 text-center"><h4>{{ _('Event') }}</h4></div>
+        <div class="span3 text-center"><h4>{{ _('Event') }}</h4></div>
         <div class="span1 text-center"><h4>{{ _('Exact Match') }}</h4></div>
     </div>
     <div data-bind="foreach: settings.settings.plugins.custom_gcode_events.received_gcode_hooks">
         <div class="row-fluid" style="margin-bottom: 5px">
-            <div class="span3">
-                <input type="text" class="span12 text-right" data-bind="value: gcode">
+            <div class="span1">
+                <input style="padding: 4px; margin: 2px;" type="checkbox" class="span12 text-right" data-bind="checked: enabled">
             </div>
             <div class="span3">
-                <input type="text" class="span12 text-right" data-bind="value: topic">
+                <input type="text" class="span12 text-right" data-bind="value: gcode, enable: enabled">
             </div>
-            <div class="span4">
-                <input type="text" class="span12 text-right" data-bind="value: event">
+            <div class="span3">
+                <input type="text" class="span12 text-right" data-bind="value: topic, enable: enabled">
+            </div>
+            <div class="span3">
+                <input type="text" class="span12 text-right" data-bind="value: event, enable: enabled">
             </div>
             <div class="span1">
-                <input style="padding: 4px; margin: 2px;" type="checkbox" class="span12 text-right" data-bind="checked: exactMatch">
+                <input style="padding: 4px; margin: 2px;" type="checkbox" class="span12 text-right" data-bind="checked: exactMatch, enable: enabled">
             </div>
             <div class="span1">
                 <button title="Remove Hook" class="btn btn-danger" data-bind="click: $parent.removeRcvdEvent"><i class="fa fa-trash-o"></i></button>
@@ -37,24 +41,28 @@
     </div>
     <h3>{{ _('GCode Sent Hooks') }}</h3>
     <div class="row-fluid">
+        <div class="span1 text-center"><h4>{{ _('Enabled') }}</h4></div>
         <div class="span3 text-center"><h4>{{ _('G-Code') }}</h4></div>
         <div class="span3 text-center"><h4>{{ _('Topic') }}</h4></div>
-        <div class="span4 text-center"><h4>{{ _('Event') }}</h4></div>
+        <div class="span3 text-center"><h4>{{ _('Event') }}</h4></div>
         <div class="span1 text-center"><h4>{{ _('Exact Match') }}</h4></div>
     </div>
     <div data-bind="foreach: settings.settings.plugins.custom_gcode_events.sent_gcode_hooks">
         <div class="row-fluid" style="margin-bottom: 5px">
-            <div class="span3">
-                <input type="text" class="span12 text-right" data-bind="value: gcode">
+            <div class="span1">
+                <input style="padding: 4px; margin: 2px;" type="checkbox" class="span12 text-right" data-bind="checked: enabled">
             </div>
             <div class="span3">
-                <input type="text" class="span12 text-right" data-bind="value: topic">
+                <input type="text" class="span12 text-right" data-bind="value: gcode, enable: enabled">
             </div>
-            <div class="span4">
-                <input type="text" class="span12 text-right" data-bind="value: event">
+            <div class="span3">
+                <input type="text" class="span12 text-right" data-bind="value: topic, enable: enabled">
+            </div>
+            <div class="span3">
+                <input type="text" class="span12 text-right" data-bind="value: event, enable: enabled">
             </div>
             <div class="span1">
-                <input style="padding: 4px; margin: 2px;" type="checkbox" class="span12 text-right" data-bind="checked: exactMatch">
+                <input style="padding: 4px; margin: 2px;" type="checkbox" class="span12 text-right" data-bind="checked: exactMatch, enable: enabled">
             </div>
             <div class="span1">
                 <button title="Remove Hook" class="btn btn-danger" data-bind="click: $parent.removeSntEvent"><i class="fa fa-trash-o"></i></button>
