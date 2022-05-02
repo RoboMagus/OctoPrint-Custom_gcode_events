@@ -21,9 +21,29 @@ The _Send_ hooks can be used to fire an event when a GCode command has been sent
 
 The _Receive_ hooks can be used to fire an event based on serial data received from your 3D printer. For example, when the print is paused a Prusa MK3 will emit ```echo:busy: paused for user```. This can be entered in the __G-Code__ field to fire an event whenever this string is received[^1]. In the __Topic__ field enter the name as wich the event should be fired. Note that this will be prepended with `gcode_event_`, converted to lower-case and spaces will be removed! E.g. a topic field entry of `Action Required` will fire an event named `gcode_event_action_required`. In the __Event__ field you may enter additional identifying information. This is an optional field that may be usefull when multiple different GCode hooks are used to fire the same event.
 
+### Subscription event actions:
+Octoprint allows you to [subscribe to events and run commands when they occur](https://docs.octoprint.org/en/master/events/index.html#sec-events). Custom GCode events can also be used for this!
+
+E.g. to send out a notification using Growl when the print is paused for user interaction you could add the following event subscribtion to your `config.yaml`[^2]:
+```yaml
+events:
+  subscriptions:
+  - event: gcode_event_action_required
+    type: system
+    command: python ~/growl.py -t mygrowlserver -d "3D-printer requires your attention!" -a OctoPrint
+```
+
+And add the following line to the Custom GCode Events settings:
+| **Enabled**   | **G-Code**                 | **Topic**       | **Event**       | **Exact Match** |
+| ------------- | -------------------------- | --------------- | --------------- | --------------- |
+| &check;       | echo:busy: paused for user | action_required | Paused for user | &check;         |
+
+### Home-Assistant usage example:
 For example, my settings shown in the image below fire either an `error`, or `action_required` event based on the GCode received from the 3D printer. The additional information in the __Event__ field is then used by in my case Home Assistant to determine what notification should be announced. I've included an example of my HomeAssistant notification config [here](HomeAssistantNotifyExample.md)
 
+### Settings screenshot:
 ![CustomGcodeEvents_Settings](extras/screenshots/CustomGcodeEvents_settings.PNG)
 
 
 [^1]: These ```echo:busy``` lines are repeated every 2 seconds or so on the Prusa printers. To avoid spamming the notification interface a timer is used to only fire an event if the G-Code trigger was not received in the last 5 seconds.
+[^2]: Growl example taken from [Octoprint docs](https://docs.octoprint.org/en/master/events/index.html#sec-events) seems outdated, but for just an example I don't really care...
