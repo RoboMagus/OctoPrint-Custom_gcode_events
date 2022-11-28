@@ -11,6 +11,13 @@ from octoprint.events import eventManager
 ## ToDo:
 #  - Match types: exact, startswith, contains, regex
 
+def ToIntOrDefault(value, default):
+    try:
+        v = int(value)
+    except ValueError:
+        v = default
+    return v
+
 class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
                                 octoprint.plugin.AssetPlugin,
                                 octoprint.plugin.TemplatePlugin,
@@ -20,14 +27,16 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
                     'topic': '',
                     'event': '',
                     'exactMatch': False,
+                    'reFireThreshold': '',
                     'enabled': True }
                     
     ##~~ SettingsPlugin mixin
 
     def get_settings_defaults(self):
         return dict(
-            received_gcode_hooks=[{'gcode': '', 'topic': '', 'event': '', 'exactMatch': True, 'enabled': True}],
-            sent_gcode_hooks=[{'gcode': '', 'topic': '', 'event': '', 'exactMatch': True, 'enabled': True}]
+            received_gcode_hooks=[{'gcode': '', 'topic': '', 'event': '', 'exactMatch': True, 'reFireThreshold': '', 'enabled': True}],
+            sent_gcode_hooks=[{'gcode': '', 'topic': '', 'event': '', 'exactMatch': True, 'enabled': True}],
+            default_refire_threshold='5'
         )
 
     def checkEventEntry(self, entry):
@@ -43,6 +52,7 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
     def on_settings_initialized(self):
         self.received_gcode_hooks = self._settings.get(["received_gcode_hooks"])
         self.sent_gcode_hooks = self._settings.get(["sent_gcode_hooks"])
+        self.default_refire_threshold = ToIntOrDefault(self._settings.get(["default_refire_threshold"]), 5)
 
         # On initialization check for incomplete settings!
         modified=False
@@ -74,6 +84,7 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
         for idx, hook in enumerate(received_gcode_hooks):
             received_gcode_hooks[idx]["topic"] = hook["topic"].strip().lower().replace(" ","_").replace("-","_").replace("/","_").replace("$","").replace("#","")
             received_gcode_hooks[idx]["event"] = hook["event"].strip()
+            received_gcode_hooks[idx]["reFireThreshold"] = ToIntOrDefault(hook["reFireThreshold"], '')
 
         sent_gcode_hooks = self._settings.get(["sent_gcode_hooks"])
         for idx, hook in enumerate(sent_gcode_hooks):
@@ -85,6 +96,7 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
 
         self.received_gcode_hooks = self._settings.get(["received_gcode_hooks"])
         self.sent_gcode_hooks = self._settings.get(["sent_gcode_hooks"])
+        self.default_refire_threshold = ToIntOrDefault(self._settings.get(["default_refire_threshold"]), 5)
 
         self._logger.debug("received_gcode_hooks settings saved: '{}'".format(self.received_gcode_hooks))
         self._logger.debug("    sent_gcode_hooks settings saved: '{}'".format(self.sent_gcode_hooks    ))
@@ -101,7 +113,6 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
             return line
         # Do processing...
         try:
-            refire_threshold = int(time.time()) - 5
             for entry in self.received_gcode_hooks:
                 if entry["enabled"]:
                     _match = False
@@ -111,11 +122,13 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
                         _match = True
 
                     if _match:
+                        _refire_threshold = ToIntOrDefault(entry.get('reFireThreshold', self.default_refire_threshold), self.default_refire_threshold)
+                        refire_threshold = int(time.time()) - _refire_threshold
                         if entry.get('timestamp', 0) <= refire_threshold:
                             self._logger.info("Received match for '{}'. Firing event 'gcode_event_{}'".format(entry["gcode"], entry["topic"]))
                             self.fire_event(entry, {"gcode": line})
                         else:
-                            self._logger.debug("Prevent firinng for event '{}'. Occured within repetition interval!!".format(entry["gcode"]))
+                            self._logger.debug("Prevent firing for event '{}'. Occured within repetition interval ({} s)!!".format(entry["gcode"], _refire_threshold))
                             entry["timestamp"] = int(time.time())
 
         except:
