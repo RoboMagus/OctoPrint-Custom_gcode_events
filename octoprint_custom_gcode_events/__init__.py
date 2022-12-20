@@ -198,6 +198,24 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
                 "repo": "OctoPrint-Custom_gcode_events",
                 "current": self._plugin_version,
 
+                "stable_branch": {
+                    "name": "Stable",
+                    "branch": "main",
+                    "comittish": ["master"],
+                },
+                "prerelease_branches": [
+                    {
+                        "name": "Release Candidate",
+                        "branch": "RC",
+                        "comittish": ["RC", "main"],
+                    },
+                    {
+                        "name": "Development",
+                        "branch": "dev",
+                        "comittish": ["dev", "RC", "main"],
+                    }
+                ],
+
                 # update method: pip
                 "pip": "https://github.com/RoboMagus/OctoPrint-Custom_gcode_events/archive/{target_version}.zip",
             }
