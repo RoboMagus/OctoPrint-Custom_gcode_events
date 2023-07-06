@@ -1,0 +1,40 @@
+name: Verify Tag version
+
+on:  
+  push:
+    tags:
+      - '*'
+
+jobs:  
+  verify:
+    name: Verify tag version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.5.2
+      - name: Write tag version to setup.py
+        run: |
+          sed -i 's/^\(plugin_version\s*=\s*\)".*"/\1"${{ github.ref_name }}"/g' setup.py
+          if [[ $(git diff setup.py) ]]; then
+              echo "Fix required!"
+              
+              # Create branch from tag
+              git checkout ${{ github.ref_name }} -b ${{ github.ref_name }}-branch
+              
+              # Commit the fix
+              git -c user.name="Version Fixer[bot]" -c user.email="${{ github.actor }}@users.noreply.github.com" \
+                commit -a -m "Fix setup.py version"
+
+              echo "Re-Creating Tag..."
+              git -c user.name="Version Fixer[bot]" -c user.email="${{ github.actor }}@users.noreply.github.com" \
+                tag -fa ${{ github.ref_name }} -m "Fix setup.py version"
+
+              echo "Pushing Changes..."
+              git push origin -f ${{ github.ref_name }} 
+
+              echo "Done!"
+          else
+              echo -e "Tag matches setup.py version.\nGood job @${{ github.actor }}!"
+          fi
