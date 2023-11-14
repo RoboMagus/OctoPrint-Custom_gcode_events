@@ -111,21 +111,13 @@ class Custom_gcode_eventsPlugin(octoprint.plugin.SettingsPlugin,
         self._logger.debug("CustomGcodeEvents Startup()")
 
     ##~~ octoprint.events.register_custom_events Plugin Hook:
-    def register_custom_events(self, *args, **kwargs):
-        self._logger.debug("CustomGcodeEvents register_custom_events()")
-
-        if not version.is_octoprint_compatible(">=1.8.0"):
-            self._logger.warning("Octoprint version compatible with Custom event Registration")
-
-        # Custom event registration done at runtime when Settings are initialized / updated!        
-        return []
 
     def register_all_custom_events(self):
         if version.is_octoprint_compatible(">=1.8.0"):
             self._register_custom_events(self.received_gcode_hooks)
             self._register_custom_events(self.sent_gcode_hooks)
         else: 
-            self._logger.warning("Custom event registration Disabled!")
+            self._logger.warning("Custom event registration Disabled! Please update Octoprint to enable this feature.")
 
     def _register_custom_events(self, hooks_list):
         for hook in hooks_list:
@@ -266,7 +258,6 @@ def __plugin_load__():
     global __plugin_hooks__
     __plugin_hooks__ = {
         "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
-        "octoprint.events.register_custom_events": __plugin_implementation__.register_custom_events,
         "octoprint.comm.protocol.gcode.received": __plugin_implementation__.recv_callback,
         "octoprint.comm.protocol.gcode.sent": __plugin_implementation__.sent_callback
     }
