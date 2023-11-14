@@ -21,6 +21,7 @@ $(function() {
                 gcode: ko.observable(''),
                 topic: ko.observable(''),
                 event: ko.observable(''),
+                reFireThreshold: ko.observable(''),
                 exactMatch: ko.observable('true') });
             self.received_gcode_hooks(self.settings.settings.plugins.custom_gcode_events.received_gcode_hooks());
         };
